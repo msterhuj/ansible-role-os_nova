@@ -1,9 +1,17 @@
 ---
+- name: "Check if nova config type is set"
+  assert:
+    that:
+      - os_nova_config_type in ['both', 'controller', 'compute']
+    fail_msg: "os_nova_config_type must be in this list [both, controller, compute]"
+    success_msg: "os_nova_config_type is set as {{ os_nova_config_type }}"
+
+
 - name: "Include openstack configurator"
   include_tasks: "os_config.yml"
   run_once: true
 
-- name: "Install nova packages"
+- name: "Install nova packages for controller"
   apt:
     package:
       - nova-api
@@ -12,6 +20,15 @@
       - nova-scheduler
     state: present
   become: true
+  when: os_nova_config_type in ['both', 'controller']
+
+- name: "Install nova package for compute"
+  apt:
+    package:
+      - nova-compute
+    state: present
+  become: true
+  when: os_nova_config_type in ['both', 'compute']
 
 - name: "Push config"
   ansible.builtin.template:
@@ -22,53 +39,78 @@
     mode: "0640"
   become: true
 
-- name: "Check if nova was already bootstrapped from database"
-  # check if tables exist in database with ansible module
-  mysql_query:
-    login_db: "nova"
-    login_host: "{{ os_nova_db_host }}"
-    login_user: "{{ os_nova_db_user }}"
-    login_password: "{{ os_nova_db_pass }}"
-    query: show tables
-  register: "nova_db_info"
+- name: "DB controller sync"
+  block:
+    - name: "Check if nova was already bootstrapped from database"
+      # check if tables exist in database with ansible module
+      mysql_query:
+        login_db: "nova"
+        login_host: "{{ os_nova_db_host }}"
+        login_user: "{{ os_nova_db_user }}"
+        login_password: "{{ os_nova_db_pass }}"
+        query: show tables
+      register: "nova_db_info"
 
-- name: Run nova database sync
-  command: su -s /bin/sh -c "nova-manage api_db sync" nova
-  register: nova_db_sync_check
-  failed_when: "nova_db_sync_check.rc == 1"
-  changed_when: "nova_db_sync_check.rc not in [2, 3, 4]"
-  when: nova_db_info.query_result.0 | length  == 0
+    - name: Run nova database sync
+      command: su -s /bin/sh -c "nova-manage api_db sync" nova
+      register: nova_db_sync_check
+      failed_when: "nova_db_sync_check.rc == 1"
+      changed_when: "nova_db_sync_check.rc not in [2, 3, 4]"
+      when: nova_db_info.query_result.0 | length  == 0
+      become: true
+
+    - name: "Register the cell0 database"
+      command: su -s /bin/sh -c "nova-manage cell_v2 map_cell0" nova
+      become: true
+
+    - name: "Create the cell1 cell"
+      command: su -s /bin/sh -c "nova-manage cell_v2 create_cell --name=cell1 --verbose" nova
+      become: true
+
+    - name: "Populate the nova database"
+      command: su -s /bin/sh -c "nova-manage db sync" nova
+      become: true
+
+    - name: "Verify nova cell0 and cell1 are registered correctly"
+      command: su -s /bin/sh -c "nova-manage cell_v2 list_cells" nova
+      become: true
+      register: nova_cell_list
+
+    - name: "debug"
+      ansible.builtin.debug:
+        msg: "{{ nova_cell_list }}"
+
+    - name: "Restart nova"
+      service:
+        name: "{{ item }}"
+        state: "restarted"
+        enabled: true
+      become: true
+      loop:
+        - "nova-api"
+        - "nova-scheduler"
+        - "nova-conductor"
+        - "nova-novncproxy"
+  when: os_nova_config_type in ['both', 'controller']
+
+- name: "Check if node supports hardware acceleration"
+  # egrep -c '(vmx|svm)' /proc/cpuinfo
+  command: egrep -c '(vmx|svm)' /proc/cpuinfo
+  register: "cpu_hardware_acceleration"
+
+- name: "Switch to quemu"
+  ansible.builtin.replace:
+    path: "/etc/nova/nova-compute.conf"
+    regexp: "^virt_type=kvm"
+    replace: "virt_type=qemu"
+    backup: yes
   become: true
+  when: cpu_hardware_acceleration.stdout == "0"
 
-- name: "Register the cell0 database"
-  command: su -s /bin/sh -c "nova-manage cell_v2 map_cell0" nova
-  become: true
-
-- name: "Create the cell1 cell"
-  command: su -s /bin/sh -c "nova-manage cell_v2 create_cell --name=cell1 --verbose" nova
-  become: true
-
-- name: "Populate the nova database"
-  command: su -s /bin/sh -c "nova-manage db sync" nova
-  become: true
-
-- name: "Verify nova cell0 and cell1 are registered correctly"
-  command: su -s /bin/sh -c "nova-manage cell_v2 list_cells" nova
-  become: true
-  register: nova_cell_list
-
-- name: "debug"
-  ansible.builtin.debug:
-    msg: "{{ nova_cell_list }}"
-
-- name: "Restart nova"
+- name: "Restart nova compute"
   service:
-    name: "{{ item }}"
+    name: "nova-compute"
     state: "restarted"
     enabled: true
   become: true
-  loop:
-    - "nova-api"
-    - "nova-scheduler"
-    - "nova-conductor"
-    - "nova-novncproxy"
+  when: os_nova_config_type in ['both', 'compute']

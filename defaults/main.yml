@@ -1,5 +1,8 @@
 ---
 # defaults file for os_nova
+
+os_nova_config_type: "both" # both, controller, compute
+
 os_nova_db_host: "localhost"
 os_nova_db_user: "nova"
 os_nova_db_pass: "NOVA_DBPASS"
@@ -36,3 +39,5 @@ os_nova_placement_user_domain_name: "Default"
 os_nova_placement_auth_url: "http://{{ ansible_fqdn }}:5000/v3"
 os_nova_placement_username: "placement"
 os_nova_placement_password: "PLACEMENT_PASS"
+
+os_nova_discover_hosts_in_cells_interval: 300

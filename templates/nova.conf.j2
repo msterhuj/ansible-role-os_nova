@@ -1096,7 +1096,12 @@ auth_strategy = {{ os_nova_auth_strategy }}
 
 
 [api_database]
+{% if os_nova_config_type in ['compute'] %}
+connection = sqlite:////var/lib/nova/nova.sqlite
+{% else %}
 connection = {{ os_nova_api_db_connection }}
+{% endif %}
+
 #
 # The *Nova API Database* is a separate database which is used for information
 # which is used across *cells*. This database is mandatory since the Mitaka
@@ -1856,7 +1861,12 @@ connection = {{ os_nova_api_db_connection }}
 
 
 [database]
+{% if os_nova_config_type in ['compute'] %}
+connection = sqlite:////var/lib/nova/nova.sqlite
+{% else %}
 connection = {{ os_nova_db_connection }}
+{% endif %}
+
 #
 # The *Nova Database* is the primary database which is used for information
 # local to a *cell*.
@@ -5175,7 +5185,9 @@ password = {{ os_nova_placement_password }}
 # Periodic task interval. For more information, refer to the documentation.
 # (integer value)
 # Minimum value: -1
-#discover_hosts_in_cells_interval = -1
+{% if os_nova_config_type in ['controller'] %}
+discover_hosts_in_cells_interval = {{ os_nova_discover_hosts_in_cells_interval }}
+{% endif %}
 
 #
 # The maximum number of placement results to request. For more information,
@@ -5871,7 +5883,9 @@ server_proxyclient_address = {{ os_nova_vnc_server_proxyclient_address }}
 #
 # Public address of noVNC VNC console proxy. For more information, refer to the
 # documentation. (uri value)
-#novncproxy_base_url = http://127.0.0.1:6080/vnc_auto.html
+{% if os_nova_config_type in ['compute'] %}
+novncproxy_base_url = http://127.0.0.1:6080/vnc_auto.html
+{% endif %}
 
 #
 # IP address that the noVNC console proxy should bind to. For more information,
