@@ -1,2 +1,38 @@
 ---
 # defaults file for os_nova
+os_nova_db_host: "localhost"
+os_nova_db_user: "nova"
+os_nova_db_pass: "NOVA_DBPASS"
+
+os_nova_db_connection: "mysql+pymysql://{{ os_nova_db_user }}:{{ os_nova_db_pass }}@{{ os_nova_db_host }}/nova"
+os_nova_api_db_connection: "mysql+pymysql://{{ os_nova_db_user }}:{{ os_nova_db_pass }}@{{ os_nova_db_host }}/nova_api"
+os_nova_auth_strategy: "keystone"
+
+os_nova_my_ip: "{{ ansible_default_ipv4.address }}"
+
+os_nova_ka_www_authenticate_uri: "http://{{ ansible_fqdn }}:5000"
+os_nova_ka_auth_url: "http://{{ ansible_fqdn }}:5000"
+os_nova_ka_memcached_servers: "{{ ansible_fqdn }}:11211"
+os_nova_ka_auth_type: "password"
+os_nova_ka_project_domain_name: "Default"
+os_nova_ka_user_domain_name: "Default"
+os_nova_ka_project_name: "service"
+os_nova_ka_username: "nova"
+os_nova_ka_password: "NOVA_PASS"
+
+os_nova_transport_url: rabbit://admin:admin@127.0.0.1:5672/
+
+os_nova_vnc_enabled: true
+os_nova_vnc_vncserver_listen: "{{ os_nova_my_ip }}"
+os_nova_vnc_server_proxyclient_address : "{{ os_nova_my_ip }}"
+
+os_nova_glance_api_servers: "http://{{ ansible_fqdn }}:9292"
+
+os_nova_placement_region_name: "Nation1"
+os_nova_placement_project_domain_name: "Default"
+os_nova_placement_project_name: "service"
+os_nova_placement_auth_type: "password"
+os_nova_placement_user_domain_name: "Default"
+os_nova_placement_auth_url: "http://{{ ansible_fqdn }}:5000/v3"
+os_nova_placement_username: "placement"
+os_nova_placement_password: "PLACEMENT_PASS"

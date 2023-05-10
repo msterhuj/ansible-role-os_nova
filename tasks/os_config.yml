@@ -1,0 +1,49 @@
+---
+# tasks file for os_nova
+- name: "Create nova user"
+  openstack.cloud.identity_user:
+    auth: "{{ os_nova_cloud_auth }}"
+    name: nova
+    password: "{{ os_nova_ka_password }}"
+    domain: default
+    state: present
+  no_log: true
+  delegate_to: localhost
+
+
+- name: "Add nova user to project service with admin role"
+  openstack.cloud.role_assignment:
+    auth: "{{ os_nova_cloud_auth }}"
+    user: nova
+    role: admin
+    project: service
+    state: present
+  delegate_to: localhost
+
+- name: "Create nova service"
+  openstack.cloud.catalog_service:
+    auth: "{{ os_nova_cloud_auth }}"
+    state: present
+    name: nova
+    type: compute
+    description: OpenStack Compute
+  delegate_to: localhost
+
+- name: "Create endpoint service for nova"
+  openstack.cloud.endpoint:
+    auth: "{{ os_nova_cloud_auth }}"
+    service: nova
+    endpoint_interface: "{{ item.interface }}"
+    url: "{{ item.url }}"
+    region: "{{ item.region }}"
+    state: present
+  loop:
+    - region: Nation1
+      interface: public
+      url: http://10.0.0.50:8774/v2.1
+    - region: Nation1
+      interface: internal
+      url: http://10.0.0.50:8774/v2.1
+    - region: Nation1
+      interface: admin
+      url: http://10.0.0.50:8774/v2.1
