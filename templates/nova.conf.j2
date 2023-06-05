@@ -3719,6 +3719,17 @@ password = {{ os_nova_ka_password }}
 
 
 [neutron]
+
+auth_url = {{ os_neutron_ka_auth_url }}
+auth_type = {{ os_neutron_ka_auth_type }}
+project_domain_name = {{ os_neutron_ka_project_domain_name }}
+user_domain_name = {{ os_neutron_ka_user_domain_name }}
+region_name = Nation1
+project_name = {{ os_neutron_ka_project_name }}
+username = {{ os_neutron_ka_username }}
+password = {{ os_neutron_ka_password }}
+service_metadata_proxy = true
+metadata_proxy_shared_secret = METADATA_SECRET
 #
 # Configuration options for neutron (network connectivity as a service).
 

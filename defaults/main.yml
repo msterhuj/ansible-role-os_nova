@@ -41,3 +41,11 @@ os_nova_placement_username: "placement"
 os_nova_placement_password: "PLACEMENT_PASS"
 
 os_nova_discover_hosts_in_cells_interval: 300
+
+os_neutron_ka_auth_url: "http://{{ ansible_fqdn }}:5000"
+os_neutron_ka_auth_type: "password"
+os_neutron_ka_project_domain_name: "Default"
+os_neutron_ka_user_domain_name: "Default"
+os_neutron_ka_project_name: "service"
+os_neutron_ka_username: "neutron"
+os_neutron_ka_password: "NEUTRON_PASS"

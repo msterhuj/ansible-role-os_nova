@@ -11,6 +11,7 @@
   include_tasks: "os_config.yml"
   run_once: true
 
+
 - name: "Install nova packages for controller"
   apt:
     package:
@@ -66,6 +67,9 @@
     - name: "Create the cell1 cell"
       command: su -s /bin/sh -c "nova-manage cell_v2 create_cell --name=cell1 --verbose" nova
       become: true
+      register: nova_cell1_create
+      failed_when: "nova_cell1_create.rc == 1"
+      changed_when: "nova_cell1_create.rc not in [2, 3, 4]"
 
     - name: "Populate the nova database"
       command: su -s /bin/sh -c "nova-manage db sync" nova
